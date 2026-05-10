@@ -28,16 +28,20 @@ def mm(value):
 def generate_sheet(labels, label_w_mm, label_h_mm, gap_mm,
                    border_color, border_width_mm,
                    font_size_mm, font_family,
-                   cols, rows, sheet_index, total_sheets):
+                   cols, rows, sheet_index, total_sheets,
+                   page_margin_mm):
     """Return SVG string for one sheet of labels."""
 
     lw = mm(label_w_mm)
     lh = mm(label_h_mm)
     gap = mm(gap_mm)
     bw = mm(border_width_mm)
+    margin = mm(page_margin_mm)
 
-    sheet_w = cols * lw + (cols - 1) * gap
-    sheet_h = rows * lh + (rows - 1) * gap
+    grid_w = cols * lw + (cols - 1) * gap
+    grid_h = rows * lh + (rows - 1) * gap
+    sheet_w = grid_w + 2 * margin
+    sheet_h = grid_h + 2 * margin
 
     font_size = mm(font_size_mm)
 
@@ -45,8 +49,8 @@ def generate_sheet(labels, label_w_mm, label_h_mm, gap_mm,
     for i, text in enumerate(labels):
         row = i // cols
         col = i % cols
-        x = col * (lw + gap)
-        y = row * (lh + gap)
+        x = margin + col * (lw + gap)
+        y = margin + row * (lh + gap)
         cx = x + lw / 2
         cy = y + lh / 2
 
@@ -63,7 +67,8 @@ def generate_sheet(labels, label_w_mm, label_h_mm, gap_mm,
         )
 
     sheet_label = f"Sheet {sheet_index + 1} of {total_sheets}" if total_sheets > 1 else ""
-    comment = f"  <!-- {label_w_mm}x{label_h_mm}mm labels | {len(labels)} labels{' | ' + sheet_label if sheet_label else ''} -->"
+    comment = (f"  <!-- {label_w_mm}x{label_h_mm}mm labels | {len(labels)} labels"
+               f" | {page_margin_mm}mm page margin{' | ' + sheet_label if sheet_label else ''} -->")
 
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg"
@@ -101,6 +106,8 @@ def parse_args():
     parser.add_argument("--font-family", default="Helvetica, Arial, sans-serif",
                         metavar="FONT", help="Font family (default: Helvetica, Arial, sans-serif)")
 
+    parser.add_argument("--page-margin", type=float, default=5.0, metavar="MM",
+                        help="Minimum margin from sheet edge in mm (default: 5.0)")
     parser.add_argument("--output", "-o", metavar="PREFIX",
                         help="Output filename prefix (default: based on input filename)")
 
@@ -126,8 +133,11 @@ def main():
     label_h = args.label_height
     gap = args.gap
 
-    cols = max(1, int((PTC_WIDTH_MM + gap) / (label_w + gap)))
-    rows = max(1, int((PTC_HEIGHT_MM + gap) / (label_h + gap)))
+    page_margin = args.page_margin
+    avail_w = PTC_WIDTH_MM - 2 * page_margin
+    avail_h = PTC_HEIGHT_MM - 2 * page_margin
+    cols = max(1, int((avail_w + gap) / (label_w + gap)))
+    rows = max(1, int((avail_h + gap) / (label_h + gap)))
     per_sheet = cols * rows
 
     font_size = args.font_size if args.font_size else label_h * 0.6
@@ -143,6 +153,7 @@ def main():
             args.border_color, args.border_width,
             font_size, args.font_family,
             cols, rows, s, total_sheets,
+            page_margin,
         )
         if total_sheets == 1:
             out = f"{prefix}.svg"

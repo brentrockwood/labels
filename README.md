@@ -64,6 +64,7 @@ python3 labels.py LABELS_FILE --label-width MM --label-height MM [options]
 | `--border-width MM` | `0.2` | Border stroke width |
 | `--font-size MM` | 60% of height | Font size |
 | `--font-family FONT` | `Helvetica, Arial, sans-serif` | Font family |
+| `--page-margin MM` | `5.0` | Minimum margin from sheet edge (accounts for non-printable printer border) |
 | `--output / -o PREFIX` | input filename stem | Output file prefix |
 
 **Examples:**
